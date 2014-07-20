@@ -4,7 +4,7 @@
 ```{r Loading libraries}
 #install.packages("ggplot2")
 library(ggplot2)
-library(lubridate)
+library(knitr)
 ```
 ## Loading and preprocessing the data
 ```{r loading data}
@@ -24,7 +24,7 @@ medians <- median(stepsperday)
   
 ```
 
-The mean of the daily steps is `r means` and its median, `r medians`.
+The mean of the daily steps is `r sprintf("%.2f",means)` and its median, `r sprintf("%.2f",medians)`.
 
 
 
@@ -41,9 +41,10 @@ The 5-minute interval `r acdat[maxd,3]` on `r acdat[maxd,2]` contains the maximu
 
 ## Imputing missing values
 
-Missing values`r sum(is.na(acdat$steps))`.
+The orginal data contains some missing values`r sum(is.na(acdat$steps))`.
 
-The missing values were imputed using the day median steps.
+In order to perform an exploratory analysis, the missing values were imputed using the day average steps for all the data. The R code used is he following.
+
 
 ```{r missing valules}
     acdat2 <- acdat
@@ -58,14 +59,18 @@ The missing values were imputed using the day median steps.
 
 ```
 
+After imputing the missing values the mean and median are `r sprintf("%.2f",means2)` and `r sprintf("%.2f",medians2)`, respectively.
+
 ## Are there differences in activity patterns between weekdays and weekends?
+
+The activity patters differ btween weekends and midweek. this can be observe in the following plot.
 
 ```{r weekdays}
 weekend <- c(weekdays(as.Date(c("19072014","20072014"),format="%d%m%Y")))
 acdat2$weekday <- ifelse(weekdays(acdat2$date) %in% weekend, "weekend", "weekday")
 acdat2$weekday <- as.factor(acdat2$weekday)
 
-ggplot(acdat2, aes(datetime,steps)) + geom_line(color = "steelblue") + facet_wrap(~ weekday,2) + xlab(label = "Interval") + ylab("Number fo steps")
+ggplot(acdat2, aes(interval,steps)) + geom_line(color = "steelblue") + facet_wrap(~ weekday,2) + xlab(label = "Interval") + ylab("Number fo steps")
 
 ```
 
