@@ -1,20 +1,72 @@
 # Reproducible Research: Peer Assessment 1
 
-
+##Loading required libraries
+```{r Loading libraries}
+#install.packages("ggplot2")
+library(ggplot2)
+library(lubridate)
+```
 ## Loading and preprocessing the data
-
-
+```{r loading data}
+acdat <-  read.csv(unz("activity.zip", "activity.csv"),
+                   header = TRUE,
+                   colClasses = c("numeric","POSIXct","numeric"))
+```
 
 ## What is mean total number of steps taken per day?
+```{r steps per day}
+  stepsperday <- with(acdat,tapply(steps,date,sum,na.rm=T))
+  binw <- (range(stepsperday,na.rm = T)[2]-range(stepsperday,na.rm = T)[1])/30
+  qplot(stepsperday, binwidth =binw, xlab= "Steps per day", ylab = "Frequency")
+
+means <- mean(stepsperday)
+medians <- median(stepsperday)
+  
+```
+
+The mean of the daily steps is `r means` and its median, `r medians`.
 
 
 
 ## What is the average daily activity pattern?
 
+```{r time series plot}
+acdat$datetime <- acdat$date+acdat$interval*60  
+ ggplot(acdat, aes(datetime, steps)) + geom_line(color="steelblue")+ ylab("Number of steps") + xlab("Date/time")
 
+maxd <- which.max(acdat$steps)
+```
+
+The 5-minute interval `r acdat[maxd,3]` on `r acdat[maxd,2]` contains the maximum number of steps (`r acdat[maxd,1]`).
 
 ## Imputing missing values
 
+Missing values`r sum(is.na(acdat$steps))`.
 
+The missing values were imputed using the day median steps.
+
+```{r missing valules}
+    acdat2 <- acdat
+    acdat2[is.na(acdat2$steps),1] <- mean(acdat2$steps,na.rm =T)   
+
+  stepsperday2 <- with(acdat2,tapply(steps,date,sum,na.rm=T))
+  binw2 <- (range(stepsperday2,na.rm = T)[2]-range(stepsperday2,na.rm = T)[1])/30
+  qplot(stepsperday2, binwidth =binw2, xlab= "Steps per day", ylab = "Frequency")
+
+  means2 <- mean(stepsperday2)
+  medians2 <- median(stepsperday2)
+
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r weekdays}
+weekend <- c(weekdays(as.Date(c("19072014","20072014"),format="%d%m%Y")))
+acdat2$weekday <- ifelse(weekdays(acdat2$date) %in% weekend, "weekend", "weekday")
+acdat2$weekday <- as.factor(acdat2$weekday)
+
+ggplot(acdat2, aes(datetime,steps)) + geom_line(color = "steelblue") + facet_wrap(~ weekday,2) + xlab(label = "Interval") + ylab("Number fo steps")
+
+```
+
+
