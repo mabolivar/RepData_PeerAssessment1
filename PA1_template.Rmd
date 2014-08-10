@@ -1,12 +1,19 @@
+---
+output: html_document
+---
 # Reproducible Research: Peer Assessment 1
 
 ##Loading required libraries
+
 ```{r Loading libraries}
 #install.packages("ggplot2")
 library(ggplot2)
 library(knitr)
+library(markdown)
 ```
+
 ## Loading and preprocessing the data
+
 ```{r loading data}
 acdat <-  read.csv(unz("activity.zip", "activity.csv"),
                    header = TRUE,
