@@ -1,17 +1,40 @@
 # Reproducible Research: Peer Assessment 1
+In this file, I present the answers for the peer assessment 1 from the *Reproducible Research* course @ Coursera.
 
 ##Loading required libraries
+The first step consists on charge the required libraries to process the data.
+
+- **ggplot2**:  A plotting system for R, based on the grammar of graphics, which tries to take the good parts of base and lattice graphics and none of the bad.
+- **knitr**: A general-purpose tool for dynamic report generation in R (Literate Statistical Programming).
+- **impute**: Imputation for microarray data (currently KNN only)
+- **markdown**: R Markdown is an authoring format that enables easy creation of dynamic documents, presentations, and reports from R.
+- **xtable**: Coerce data to LaTeX and HTML tables.
+
+```{r change wd,echo=F}
+setwd("C:\\Users\\Manuel\\Dropbox\\3. DSS\\RepData_PeerAssessment1")
+```
 
 ```{r Loading libraries}
 #install.packages("ggplot2")
 library(ggplot2)
 library(knitr)
-library(markdown)
 library(impute)
+library(markdown)
 library(xtable)
 ```
 
 ## Loading and preprocessing the data
+In order to perform the analysis, I loaded all the variables included in the dataset.
+
+- **steps**: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+
+- **date**: The date on which the measurement was taken in YYYY-MM-DD format
+
+- **interval**: Identifier for the 5-minute interval in which measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+The following code chunk loads the data in R.
 
 ```{r loading data}
 acdat <-  read.csv(unz("activity.zip", "activity.csv"),
@@ -21,6 +44,7 @@ acdat <-  read.csv(unz("activity.zip", "activity.csv"),
 
 ## What is mean total number of steps taken per day?
 In this section, an histogram present the distribution of the number of steps taken across all days. 
+
 ```{r steps per day}
 stepsperday <- with(acdat,tapply(steps,date,sum,na.rm=T))
 binw <- (range(stepsperday,na.rm = T)[2]-range(stepsperday,na.rm = T)[1])/30
@@ -28,12 +52,12 @@ qplot(stepsperday, binwidth =binw, xlab= "Steps per day", ylab = "Frequency")
 
 ```
 
-It is important to notice that there exists a high frecuency of zeros on the histogram due to the lack of data (missing values) in some days. Those missing values will be imputed and the new histogram is presented in the next section.
+It is important to notice that there exists a high frecuency of zeros on the histogram due to the lack of data (missing values) in some days. Those missing values will be imputed and the new histogram is presented in two sections below.
 
 
-The following table present the mean and median number of steps taken each day (empty boxes indicates missing data):
+In order to provide a more detail view of the data, the following table present the mean and median number of steps taken each day (empty boxes indicates missing data):
 
-```{r men and median, results='asis'}
+```{r mean and median per day, results='asis'}
 step_mean <- with(acdat,tapply(steps,date,mean,na.rm=T))
 step_median <- with(acdat,tapply(steps,date,median,na.rm=T))
 mm <- data.frame(step_mean, step_median)
@@ -42,8 +66,15 @@ print(xt, type= "html")
 ```
 
 
+```{r mean and median across all days}
+means <- mean(stepsperday)
+medians <- median(stepsperday)
+```
+
+Finally, I compute the mean of the daily steps, `r sprintf("%.2f",means)` and its median, `r sprintf("%.2f",medians)`.
 
 ## What is the average daily activity pattern?
+In this section, the reader can observe the average dail activity pattern for the studied subject.
 
 ```{r time series plot}
 acdat$datetime <- acdat$date+acdat$interval*60
@@ -52,21 +83,30 @@ interdf <- data.frame(interval = as.numeric(names(interAvg)),interAvg)
 ggplot(data = interdf, aes(interval, interAvg)) + geom_line(color="steelblue",size=1)+ ylab("Number of steps") + xlab("Date/time")
 
 maxd <- which.max(interdf$interAvg)
+hour <- floor(interdf$interval[maxd]/60)
+minute <- (interdf$interval[maxd]/60 - floor(interdf$interval[maxd]/60))*60
 ```
 
-The 5-minute interval `r acdat[maxd,3]` on `r acdat[maxd,2]` contains the maximum number of steps (`r acdat[maxd,1]`).
+The plot shows that the 5-minute interval `r interdf$interval[maxd]` of the day (i.e. `r paste(hour,minute,sep=":")`) contains the maximum number of steps (`r sprintf("%.2f",interdf$interAvg[maxd])`) on average.
 
 ## Imputing missing values
 
-The orginal data contains some missing values`r sum(is.na(acdat$steps))`.
+As the reader may have seen in previous sections, the orginal data contains some missing values: `r sum(is.na(acdat$steps))`.
 
-In order to perform an exploratory analysis, the missing values were imputed using the day average steps for all the data. The R code used is he following.
+In order to perform an exploratory analysis, the missing values were imputed using the `impute.knn()` function from the impute package. This function imputes the missing valules using nearest neighbor averaging.
 
+The R code used is he following.
 
 ```{r missing valules,results='hide'}
 acdat2 <- acdat  
-acdat2$steps<- (impute.knn(as.matrix(cbind(acdat2$steps,acdat2$interval,as.numeric(acdat2$date))))$data)[,1]
+acdat2$steps<- (impute.knn(
+  as.matrix(cbind(acdat2$steps,
+                  acdat2$interval,
+                  as.numeric(acdat2$date))))$data)[,1]
 ```
+
+The following histogram exhibits the data distribution with the imputed data. It worth to notice that this graph doesn't has an excess of zeros produced by the missing values. 
+
 ```{r imputation plot}
 stepsperday2 <- with(acdat2,tapply(steps,date,sum,na.rm=T))
 binw2 <- (range(stepsperday2,na.rm = T)[2]-range(stepsperday2,na.rm = T)[1])/30
@@ -74,6 +114,8 @@ qplot(stepsperday2, binwidth =binw2, xlab= "Steps per day", ylab = "Frequency")
 
 
 ```
+
+The following table presents the steps mean and median per day with the imputed data. 
 
 ```{r men and median (imputed), results='asis'}
 step_mean <- with(acdat2,tapply(steps,date,mean,na.rm=T))
@@ -83,11 +125,18 @@ xt <- xtable(mm)
 print(xt, type= "html")  
 ```
 
-After imputing the missing values the mean and median are `r sprintf("%.2f",means2)` and `r sprintf("%.2f",medians2)`, respectively.
+```{r mean and median across all days (imputed data)}
+means2 <- mean(stepsperday2)
+medians2 <- median(stepsperday2)
+```
+
+
+Therefore, we can compute a more precise steps' mean and median across the days: `r sprintf("%.2f",means2)` and `r sprintf("%.2f",medians2)`, respectively.  
+
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
-The activity patters differ btween weekends and midweek. this can be observe in the following plot.
+The activity patters differ between weekends and midweek. This can be observe in the following plot.
 
 ```{r weekdays}
 weekend <- c(weekdays(as.Date(c("19072014","20072014"),format="%d%m%Y")))
@@ -98,4 +147,8 @@ ggplot(interAvg2, aes(Group.2,x)) + geom_line(color = "steelblue", size =1) + fa
 
 ```
 
+In the weekday plot, the reader can observe a peak of activity on the morning but after certain hour that activity become more stable until the end of the day. On the other hand, the weekend plot shows how the activity is stable along the day without a marked peak.
 
+```{r export to markdown,echo=F}
+knit("PA1_template.Rmd", "PA1_template.md")
+```
